@@ -1,41 +1,33 @@
 package temporalproxy
 
 import (
-	"errors"
-	"sync/atomic"
-	"temporal-proxy/pkg/service"
+	"context"
+	"temporal-proxy/pkg/worker"
+	"time"
 
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
-type TemporalProxy struct {
-	logger *zap.SugaredLogger
+func TemporalProxyWorker(ctx context.Context, logger *zap.Logger) error {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
 
-	initialized atomic.Bool
-}
-
-func NewTemporalProxy() service.Service {
-	return &TemporalProxy{
-		logger: zap.NewNop().Sugar(),
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("I'm stopping")
+			return nil
+		case <-ticker.C:
+			logger.Info("I'm running...")
+		}
 	}
 }
 
-func (tp *TemporalProxy) Name() string {
-	return "TemporalProxy"
-}
+var invoke = fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger, shutdowner fx.Shutdowner) {
+	worker.RegisterWorker(lc, logger, "TemporalProxyWorker", TemporalProxyWorker)
+})
 
-func (tp *TemporalProxy) Initialize(logger *zap.SugaredLogger) error {
-	tp.logger = logger
-
-	tp.initialized.Store(true)
-
-	return nil
-}
-
-func (tp *TemporalProxy) Run() error {
-	if !tp.initialized.Load() {
-		return errors.New("unable to call .Run before setting initializing TemporalProxy")
-	}
-
-	return nil
-}
+var Module = fx.Options(
+	invoke,
+)
