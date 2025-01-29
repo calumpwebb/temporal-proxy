@@ -10,23 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
-// Dependencies managed by Fx
-type HealthCheckWorkerDeps struct {
-	fx.In
-	Logger     *zap.Logger
-	Lifecycle  fx.Lifecycle
-	Shutdowner fx.Shutdowner
-}
-
-// HealthCheckWorker struct
 type HealthCheckWorker struct {
 	logger     *zap.Logger
 	server     *http.Server
 	shutdowner fx.Shutdowner
 }
 
-// NewHealthCheckWorker is provided by Fx
-func NewHealthCheckWorker(deps HealthCheckWorkerDeps) *HealthCheckWorker {
+func NewHealthCheckWorker(deps HealthCheckWorkerDependencies) *HealthCheckWorker {
 	logger := deps.Logger
 
 	mux := http.NewServeMux()
@@ -57,6 +47,7 @@ func NewHealthCheckWorker(deps HealthCheckWorkerDeps) *HealthCheckWorker {
 func (h *HealthCheckWorker) Start(ctx context.Context) error {
 	h.logger.Info("starting health check server on " + h.server.Addr)
 
+	// TODO: (calum) i dont think this will shut down if ctx is cancelled... its never passed in? (maybe its okay because its shutdown in Stop)
 	// Run server in a goroutine so Start() doesn't block
 	go func() {
 		if err := h.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -78,13 +69,3 @@ func (h *HealthCheckWorker) Stop(ctx context.Context) error {
 
 	return h.server.Shutdown(shutdownCtx)
 }
-
-var Module = fx.Options(
-	fx.Provide(NewHealthCheckWorker),
-	fx.Invoke(func(lifecycle fx.Lifecycle, worker *HealthCheckWorker) {
-		lifecycle.Append(fx.Hook{
-			OnStart: worker.Start,
-			OnStop:  worker.Stop,
-		})
-	}),
-)

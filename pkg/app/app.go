@@ -1,26 +1,17 @@
 package app
 
 import (
-	"temporal-proxy/pkg/logger"
-	"temporal-proxy/pkg/workers"
-
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 )
 
-func NewLogger() (*zap.Logger, error) {
-	return zap.NewDevelopment()
-}
+func NewApp(options ...Option) *fx.App {
+	defaultOptions := NewDefaultOptions()
 
-func RunApplication() {
-	app := fx.New(
-		logger.Module,
+	for _, opt := range options {
+		defaultOptions = opt(defaultOptions) // Apply options correctly
+	}
 
-		workers.Module,
-
-		// Comment out to get internal FX logging back!
-		fx.NopLogger,
+	return fx.New(
+		defaultOptions.fxOptions,
 	)
-
-	app.Run()
 }
