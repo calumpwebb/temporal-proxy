@@ -8,6 +8,5 @@ import (
 type HealthCheckWorkerDependencies struct {
 	fx.In
 	Logger     *zap.Logger
-	Lifecycle  fx.Lifecycle
 	Shutdowner fx.Shutdowner
 }

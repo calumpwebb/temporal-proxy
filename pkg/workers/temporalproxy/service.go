@@ -14,10 +14,8 @@ type TemporalProxyWorker struct {
 }
 
 func NewTemporalProxyWorker(dependencies TemporalProxyWorkerDependencies) *TemporalProxyWorker {
-	logger := dependencies.Logger
-
 	return &TemporalProxyWorker{
-		logger:     logger,
+		logger:     dependencies.Logger,
 		shutdowner: dependencies.Shutdowner,
 	}
 }
@@ -29,6 +27,7 @@ func (h *TemporalProxyWorker) Start(ctx context.Context) error {
 
 	// Run server in a goroutine so Start() doesn't block
 	go func() {
+		// TODO: (calum) i think this ctx gets cancelled after 15 seconds... new context required? or smoething else, why not an issue for healthcheck?
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
@@ -37,12 +36,15 @@ func (h *TemporalProxyWorker) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				h.logger.Info("temporal proxy server closing")
 				// TODO: (calum) shutdowner? what about if this is an error? feels like this class is stillclosign for some reason
+				h.logger.Info(ctx.Err().Error())
 				return
 			case <-ticker.C:
 				h.logger.Info("temporal proxy server is running")
 			}
 		}
 	}()
+
+	h.logger.Info("temporal proxy server started")
 
 	return nil
 }

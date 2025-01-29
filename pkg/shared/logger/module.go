@@ -11,8 +11,6 @@ var Module = fx.Module("logger",
 
 	// Use the same logger for internal Fx logging
 	fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
-		println("still got here")
-		println(logger)
 		return &fxevent.ZapLogger{Logger: logger}
 	}),
 )

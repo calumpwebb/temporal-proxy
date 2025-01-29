@@ -16,9 +16,7 @@ type HealthCheckWorker struct {
 	shutdowner fx.Shutdowner
 }
 
-func NewHealthCheckWorker(deps HealthCheckWorkerDependencies) *HealthCheckWorker {
-	logger := deps.Logger
-
+func NewHealthCheckWorker(dependencies HealthCheckWorkerDependencies) *HealthCheckWorker {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -29,7 +27,7 @@ func NewHealthCheckWorker(deps HealthCheckWorkerDependencies) *HealthCheckWorker
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 
-		logger.Info("GET /healthz check endpoint called")
+		dependencies.Logger.Info("GET /healthz check endpoint called")
 	})
 
 	server := &http.Server{
@@ -38,9 +36,9 @@ func NewHealthCheckWorker(deps HealthCheckWorkerDependencies) *HealthCheckWorker
 	}
 
 	return &HealthCheckWorker{
-		logger:     logger,
+		logger:     dependencies.Logger,
 		server:     server,
-		shutdowner: deps.Shutdowner,
+		shutdowner: dependencies.Shutdowner,
 	}
 }
 
@@ -57,6 +55,8 @@ func (h *HealthCheckWorker) Start(ctx context.Context) error {
 			h.shutdowner.Shutdown()
 		}
 	}()
+
+	h.logger.Info("health check worker started")
 
 	return nil
 }

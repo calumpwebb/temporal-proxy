@@ -14,6 +14,6 @@ var modules = fx.Module("app",
 	healthcheck.Module,
 	temporalproxy.Module,
 
-	// // Comment out to get internal FX logging back!
+	// Comment out to get internal FX logging back!
 	// fx.NopLogger,
 )
