@@ -1,9 +1,8 @@
 package app
 
 import (
-	"temporal-proxy/pkg/healthcheck"
 	"temporal-proxy/pkg/logger"
-	"temporal-proxy/pkg/temporalproxy"
+	"temporal-proxy/pkg/workers"
 
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -16,8 +15,8 @@ func NewLogger() (*zap.Logger, error) {
 func RunApplication() {
 	app := fx.New(
 		logger.Module,
-		temporalproxy.Module,
-		healthcheck.Module,
+
+		workers.Module,
 
 		// Comment out to get internal FX logging back!
 		fx.NopLogger,
