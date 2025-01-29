@@ -20,12 +20,13 @@ func TemporalProxyWorker(ctx context.Context, logger *zap.Logger) error {
 			return nil
 		case <-ticker.C:
 			logger.Info("I'm running...")
+			panic("test")
 		}
 	}
 }
 
 var invoke = fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger, shutdowner fx.Shutdowner) {
-	worker.RegisterWorker(lc, logger, "TemporalProxyWorker", TemporalProxyWorker)
+	worker.RegisterWorker(lc, logger, shutdowner, "TemporalProxyWorker", TemporalProxyWorker)
 })
 
 var Module = fx.Options(

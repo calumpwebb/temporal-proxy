@@ -11,7 +11,7 @@ import (
 
 type WorkerFunc func(ctx context.Context, logger *zap.Logger) error
 
-func RegisterWorker(lc fx.Lifecycle, logger *zap.Logger, name string, fn WorkerFunc) {
+func RegisterWorker(lc fx.Lifecycle, logger *zap.Logger, shutdowner fx.Shutdowner, name string, fn WorkerFunc) {
 	workerLogger := logger.With(zap.String("worker", name))
 	var (
 		workerCtx context.Context
@@ -22,14 +22,13 @@ func RegisterWorker(lc fx.Lifecycle, logger *zap.Logger, name string, fn WorkerF
 		OnStart: func(ctx context.Context) error {
 			workerLogger.Info("starting worker")
 
-			// Ensure we don’t inherit fx’s startup timeout
-			workerCtx, cancel = context.WithCancel(context.Background())
+			workerCtx, cancel = context.WithCancel(ctx)
 
-			// Start the worker in a goroutine, OnStart must return quickly
 			go func() {
 				defer func() {
 					if r := recover(); r != nil {
 						workerLogger.Error("worker panicked", zap.Any("error", r))
+						shutdowner.Shutdown() // Gracefully stop everything
 					}
 				}()
 
@@ -45,18 +44,13 @@ func RegisterWorker(lc fx.Lifecycle, logger *zap.Logger, name string, fn WorkerF
 								return
 							}
 
-							// Add retry backoff but allow shutdown
-							select {
-							case <-workerCtx.Done():
-								return
-							case <-time.After(500 * time.Millisecond):
-							}
+							shutdowner.Shutdown()
+							return
 						}
 					}
 				}
 			}()
 
-			workerLogger.Info("worker started")
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
@@ -79,7 +73,6 @@ func RegisterWorker(lc fx.Lifecycle, logger *zap.Logger, name string, fn WorkerF
 				}
 			}
 
-			workerLogger.Info("worker finished")
 			return nil
 		},
 	})
